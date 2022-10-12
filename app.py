@@ -8,7 +8,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://trello_dev:passwo
 
 db = SQLAlchemy(app)
 
-print(db)
+
+class Card(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    description = db.Column(db.Text())
+    date = db.Column(db.Date())
+    status = db.Column(db.String())
+    priority = db.Column(db.String())
 
 
 @app.route('/')
