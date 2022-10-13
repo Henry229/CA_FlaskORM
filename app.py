@@ -1,13 +1,16 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date
+from flask_marshmallow import Marshmallow
+
+# from symbol import stmt
 
 app = Flask(__name__)
 
-# this sentence is a universal db connection 'protocol+adapter'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://trello_dev:password123@127.0.0.1:5432/trello'
 
 db = SQLAlchemy(app)
+ma = Marshmallow(app)
 
 
 class Card(db.Model):
@@ -21,34 +24,89 @@ class Card(db.Model):
     priority = db.Column(db.String)
 
 
-# db.create_all()
 # Define a custom CLI (terminal) command
 @app.cli.command('create')
 def create_db():
     db.create_all()
-    print("Tables Created")
+    print("Tables created")
 
 
 @app.cli.command('drop')
 def drop_db():
     db.drop_all()
-    print("Tables Dropped")
+    print("Tables dropped")
 
 
 @app.cli.command('seed')
-def seed_Db():
-    card = Card(
-        title='Start the project',
-        description='Stage 1- Creating the database',
-        status='To Do',
-        priority='High',
-        date=date.today(),
-    )
-    db.session.add(card)  # seesion connection
+def seed_db():
+    cards = [
+        Card(
+            title='Start the project',
+            description='Stage 1 - Create the database',
+            status='To Do',
+            priority='High',
+            date=date.today()
+        ),
+        Card(
+            title="SQLAlchemy",
+            description="Stage 2 - Integrate ORM",
+            status="Ongoing",
+            priority="High",
+            date=date.today()
+        ),
+        Card(
+            title="ORM Queries",
+            description="Stage 3 - Implement several queries",
+            status="Ongoing",
+            priority="Medium",
+            date=date.today()
+        ),
+        Card(
+            title="Marshmallow",
+            description="Stage 4 - Implement Marshmallow to jsonify models",
+            status="Ongoing",
+            priority="Medium",
+            date=date.today()
+        )
+    ]
+
+    db.session.add_all(cards)
     db.session.commit()
     print('Tables seeded')
 
 
+@app.cli.command('/cards/')
+def all_cards():
+    # select * from cards;
+    # cards = Card.query.all()
+    # stmt = db.select(Card).where(db.or_
+    #                              (Card.status == 'To do', Card.priority == 'High'))
+    stmt = db.select(Card).order_by(Card.priority, Card.title)
+    cards = db.session.scalars(stmt)
+    return jsonify(cards)
+    # for card in cards:
+    #     print(card.title, card.priority)
+    # print(cards)
+    # print(cards[0].__dict__)
+
+
+@app.cli.command('first_cards')
+def first_cards():
+    # select * from cards limit 1;
+    # cards = Card.query.first()
+    stmt = db.select(Card).limit(1)
+    cards = db.session.scalar(stmt)
+    print(cards.__dict__)
+
+
+@app.cli.command('count_ongoing')
+def count_ongoing():
+    stmt = db.select(db.func.count()).select_from(
+        Card).filter_by(status='ongoing')
+    cards = db.session.scalar(stmt)
+    print(cards)
+
+
 @app.route('/')
 def index():
-    return "Hello, world!"
+    return "Hello World!"
